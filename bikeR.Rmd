@@ -1,0 +1,296 @@
+---
+title: "Bike Rental"
+author: "Roopak Krishna"
+date: "2 December 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# Libraries Chunk
+library(dplyr)
+library(psych)
+library(wesanderson)
+library(ggpubr)
+library(readr)
+library(Amelia)
+library(ggplot2)
+library(caret)
+library(GGally)
+library(ggthemes)
+library(broom)
+library(bindrcpp)
+library(caTools)
+library(rattle)
+library(RColorBrewer)
+library(nnet)
+library(rpart.plot)
+```
+
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+setwd("C:/Users/Rupak/Desktop/edwisor/Project")
+bike <- read.csv(paste("day.csv"),sep=",")
+View(bike)
+describe(bike)
+str(bike)
+```
+
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+colnames(bike)
+missmap(bike)
+str(bike)
+```
+
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+new_bike <- bike
+new_bike[,c("season","yr","holiday","weekday","workingday","weathersit","mnth")]<- lapply(new_bike[,c("season","yr","holiday","weekday","workingday","weathersit","mnth")], as.factor)
+str(new_bike)
+```
+
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+levels(new_bike$season)[levels(new_bike$season)==1] <- "Springer"
+levels(new_bike$season)[levels(new_bike$season)==2] <- "Summer"
+levels(new_bike$season)[levels(new_bike$season)==3] <- "Fall"
+levels(new_bike$season)[levels(new_bike$season)==4] <- "Winter"
+levels(new_bike$yr)[levels(new_bike$yr)==0] <- "2011"
+levels(new_bike$yr)[levels(new_bike$yr)==1] <- "2012"
+levels(new_bike$holiday)[levels(new_bike$holiday)==0] <- "No Holiday"
+levels(new_bike$holiday)[levels(new_bike$holiday)==1] <- "Holiday"
+levels(new_bike$weekday)[levels(new_bike$weekday)==0] <- "Sunday"
+levels(new_bike$weekday)[levels(new_bike$weekday)==1] <- "Monday"
+levels(new_bike$weekday)[levels(new_bike$weekday)==2] <- "Tuesday"
+levels(new_bike$weekday)[levels(new_bike$weekday)==3] <- "Wednesday"
+levels(new_bike$weekday)[levels(new_bike$weekday)==4] <- "Thursday"
+levels(new_bike$weekday)[levels(new_bike$weekday)==5] <- "Friday"
+levels(new_bike$weekday)[levels(new_bike$weekday)==6] <- "Saturday"
+levels(new_bike$workingday)[levels(new_bike$workingday)==0] <- "Holiday or Weekend"
+levels(new_bike$workingday)[levels(new_bike$workingday)==1] <- "Working Day"
+levels(new_bike$weathersit)[levels(new_bike$weathersit)==1] <- "Clear, Partly Clouds"
+levels(new_bike$weathersit)[levels(new_bike$weathersit)==2] <- "Mist, Cloudy"
+levels(new_bike$weathersit)[levels(new_bike$weathersit)==3] <- "Light Snow, Rain, Thunderstorm"
+
+str(new_bike)
+```
+
+```{r echo=FALSE,warning=FALSE,message=FALSE,fig.width=8}
+ggplot(new_bike,aes(cnt)) +
+  geom_histogram(aes(y=..density..), colour="black", fill="white")+
+  geom_density(alpha=.2, fill="#FF6666") +
+  theme_economist() +
+  xlab("Count of bike rental")+
+  ggtitle("~Whole population distribution by bike rental count on daily basis~")
+```
+
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+ggplot(new_bike, aes(x=cnt, color=yr,fill=yr)) +
+  geom_histogram( position="dodge")+
+  theme_economist() +
+  scale_fill_manual(values=wes_palette(n=2,name="Darjeeling1"))+
+  xlab("Bike rental count")+
+  ggtitle("~Bike rental Count distributed on Year basis~")
+```
+
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+ggplot(new_bike,aes(cnt, fill=season)) +
+  geom_histogram(aes(y=..density..),breaks=seq(20, 8800, by=1000), color="grey17") +
+  geom_density(alpha=.1, fill="black")+
+  facet_wrap(~season, ncol=2,scale="fixed") +
+  theme_economist()  +
+  scale_fill_manual(values=wes_palette(n=4,name="Darjeeling1")) +
+   ylab("Density")+
+  xlab("Count of Bike rental")+
+  ggtitle("~ Bike rental count distributed on season basis ~")
+```
+
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+ggplot(new_bike,aes(cnt,fill=holiday)) +
+  geom_histogram(aes(y=..density..),breaks=seq(20,8800,by=1000),color="grey20")+
+  geom_density(alpha=.1,fill="black")+
+  facet_wrap(~holiday,ncol=1,scale="fixed")+
+  theme_economist()+
+  scale_fill_manual(values=wes_palette(n=2,name="Darjeeling1"))+
+  ylab("Density")+
+  xlab("Bike Rental Count")+
+  ggtitle("~Bike Rental Count on holiday basis~")
+```
+
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+ggplot(new_bike,aes(cnt,fill=workingday)) +
+  geom_histogram(aes(y=..density..),breaks=seq(20,8800,by=1000),color="grey20")+
+  geom_density(alpha=.1,fill="black")+
+  facet_wrap(~workingday,ncol=1,scale="fixed")+
+  theme_economist()+
+  scale_fill_manual(values=wes_palette(n=2,name="Darjeeling1"))+
+  ylab("Density")+
+  xlab("Bike Rental Count")+
+  ggtitle("~Bike Rental Count on workingday basis~")
+```
+
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+ggplot(new_bike,aes(cnt, fill=weathersit)) +
+  geom_histogram(aes(y=..density..),breaks=seq(20, 8800, by=1000), color="grey17") +
+  geom_density(alpha=.1, fill="black")+
+  facet_wrap(~weathersit, ncol=2,scale="fixed") +
+  theme_economist()  +
+  scale_fill_manual(values=wes_palette(n=4,name="Darjeeling1")) +
+   ylab("Density")+
+  xlab("Count of Bike rental")+
+  ggtitle("~ Bike rental count distributed on weather condition basis ~")
+```
+
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+ggplot(new_bike, aes(x = mnth, y = cnt)) + geom_boxplot() +
+  theme_economist() +
+  xlab("Months")+
+  ylab("Bike Rental Count")+
+  ggtitle("~Bike Rental Count Distributed on the No. of Months basis~")
+```
+
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+ g1 <- ggplot(new_bike, aes(x=atemp,y=cnt)) +
+geom_point(position=position_jitter(w=0.1,h=0)) +
+geom_smooth(method="lm", se=FALSE) +
+  theme_economist() +
+  xlab("Normalized feeling Temperature in Celsius") + 
+  ylab("Bike Rental Count") +
+ggtitle("~atemp Versus count~")
+
+g4 <- ggplot(new_bike, aes(x=temp,y=cnt)) +
+geom_point(position=position_jitter(w=0.1,h=0)) +
+geom_smooth(method="lm", se=FALSE) +
+  theme_economist() +
+  xlab("Normalized Temperature in Celsius") + 
+  ylab("Bike Rental Count") +
+ggtitle("~temp Versus count~")
+
+```
+
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+g2 <- ggplot(new_bike, aes(x=hum,y=cnt)) +
+geom_point(position=position_jitter(w=0.1,h=0)) +
+geom_smooth(method="lm", se=FALSE) +
+  theme_economist() +
+  xlab("Normalized humidity") + 
+  ylab("Bike Rental Count") +
+ggtitle("~hum Versus count~")
+```
+
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+g3 <- ggplot(new_bike, aes(x=hum,y=cnt)) +
+geom_point(position=position_jitter(w=0.1,h=0)) +
+geom_smooth(method="lm", se=FALSE) +
+  theme_economist() +
+  xlab("Normalized Wind Speed") + 
+  ylab("Bike Rental Count") +
+ggtitle("~Wind Speed Versus count~")
+```
+
+
+
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+gridExtra::grid.arrange(g4,g1,g2,g3,ncol=2)
+```
+
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+summary(new_bike[,c(14,15)])
+```
+
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+OutVals = boxplot(new_bike$temp,plot=FALSE)$out
+OutVals
+OutVals1 = boxplot(new_bike$atemp,plot=FALSE)$out
+OutVals1
+OutVals2 = boxplot(new_bike$windspeed,plot=FALSE)$out
+OutVals2
+OutVals3 = boxplot(new_bike$hum,plot=FALSE)$out
+OutVals3
+
+```
+
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+print(OutVals2)
+new_bike[which(new_bike$windspeed %in% OutVals2),]
+new_bike <- new_bike[-which(new_bike$windspeed %in% OutVals2),]
+b1 <- boxplot(new_bike$windspeed)
+
+print(OutVals3)
+new_bike[which(new_bike$hum %in% OutVals3),]
+new_bike <- new_bike[-which(new_bike$hum %in% OutVals3),]
+b2 <- boxplot(new_bike$hum)
+
+
+```
+
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+library(usdm)
+df = new_bike[,c("instant","temp","atemp","hum","windspeed","casual","registered")]
+vifcor(df)
+```
+
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+library(corrgram)
+corrgram(new_bike, order = F, upper.panel=panel.pie, text.panel=panel.txt, main = "Correlation Plot")
+```
+
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+new_bike1 <- new_bike
+new_bike1 <- subset(new_bike1,select=-c(instant,dteday,atemp))
+```
+
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+set.seed(101)
+sample1 = sample(1:nrow(new_bike1), 0.8 * nrow(new_bike1))
+train_data = new_bike1[sample1,]
+test_data = new_bike1[-sample1,]
+#str(new_bike1)
+```
+
+##Linear regression
+#MAPE: 67.61
+#Accuracy: 32.39
+#RMSE: 2697.23
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+library(MLmetrics)
+lr_model = lm(formula = cnt~.-casual - registered, data = train_data)
+summary(lr_model)
+predictions_LR = predict(lr_model, train_data[,-13])
+#str(new_bike1)
+MAPE(test_data[,13], predictions_LR)
+RMSE(test_data[,13], predictions_LR)
+#regr.eval(trues = test_data[,13], preds = predictions_LR, stats = c("mae","mse","rmse","mape"))
+```
+
+##Random Forest
+#MAPE : 2.92
+#Accuracy : 97.08
+# RMSE : 114.25
+```{r echo=FALSE,warning=FALSE,message=FALSE}
+#Random forest1
+#MAPE : 3.69
+#Accuracy : 96.31
+#RMSE : 149.17
+library(randomForest)
+random1 <- randomForest(cnt ~ . , data = train_data,mtry =7,ntree=500 ,nodesize =10 ,importance =TRUE)
+random1
+prediction1 <- predict(random1, test_data[,-13])
+MAPE(test_data[,13], prediction1)
+RMSE(test_data[,13], prediction1)
+varimp <- importance(random1)
+
+varimp
+varImpPlot(random1,type = 2)
+
+## Model 2
+#MAPE : 2.92
+#Accuracy : 97.08
+#RMSE : 114.25
+random2<-randomForest(cnt ~ .-weathersit-windspeed, data = train_data,mtry =7,ntree=500 ,nodesize =10 ,importance=TRUE)
+random2
+prediction2 <- predict(random2, test_data[,-13])
+MAPE(test_data[,13], prediction2)
+RMSE(test_data[,13], prediction2)
+
+```
+
+
+
+
